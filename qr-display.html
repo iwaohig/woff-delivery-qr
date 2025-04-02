@@ -43,7 +43,10 @@
         document.getElementById("info").textContent = JSON.stringify(deliveryInfo, null, 2);
 
         // QR コード生成
-        new QRCode(document.getElementById("qrcode"), JSON.stringify(deliveryInfo));
+        const qrTarget = document.getElementById("qrcode");
+qrTarget.innerHTML = "";
+const qr = new QRCode(qrTarget, { width: 256, height: 256 });
+qr.makeCode(JSON.stringify(deliveryInfo));
       })
       .catch(err => {
         alert("WOFF 初期化エラー: " + err.message);
