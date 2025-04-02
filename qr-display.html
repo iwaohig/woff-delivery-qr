@@ -1,61 +1,35 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>納品 QR 表示</title>
-  <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 2rem; }
-    #qrcode { margin-top: 1.5rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社員証表示</title>
+    <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-  <h1>納品 QR 表示</h1>
-  <p>名前: <span id="name"></span></p>
-  <p>ID: <span id="userId"></span></p>
-  <p>有効期限: <span id="expiry"></span></p>
-  <div id="qrcode"></div>
-  <pre id="info"></pre>
+    <div id="card">
+        <h1>社員証</h1>
+        <p>名前: <span id="name"></span></p>
+        <p>ID: <span id="userId"></span></p>
+        <div id="qrcode"></div>
+    </div>
+    <script>
+        woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
+        .then(() => woff.getProfile())
+        .then(profile => {
+            document.getElementById("name").textContent = profile.displayName;
+            document.getElementById("userId").textContent = profile.userId;
 
-  <script>
-    woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
-      .then(() => woff.getProfile())
-      .then(profile => {
-        const now = Date.now();
-        const expiry = now + 5 * 60 * 1000;
-
-        const deliveryInfo = {
-          deliveryId: "DLV20250402-00123",
-          estimatedDate: "2025-04-03",
-          client: "株式会社ABC 横浜支店",
-          deliveryPerson: {
-            userId: profile.userId,
-            name: profile.displayName
-          },
-          timestamp: now,
-          expiry: expiry
-        };
-
-        document.getElementById("name").textContent = profile.displayName;
-        document.getElementById("userId").textContent = profile.userId;
-        document.getElementById("expiry").textContent = new Date(expiry).toLocaleString();
-        document.getElementById("info").textContent = JSON.stringify(deliveryInfo, null, 2);
-
-        // QRコード生成（divベース）
-        const qrEl = document.getElementById("qrcode");
-        qrEl.innerHTML = ""; // 再描画時に必要
-        new QRCode(qrEl, {
-          text: JSON.stringify(deliveryInfo),
-          width: 256,
-          height: 256
-        });
-      })
-      .catch(err => {
-        alert("WOFF 初期化エラー: " + err.message);
-        console.error(err);
-      });
-  </script>
+            const qrData = JSON.stringify({
+                displayName: profile.displayName,
+                userId: profile.userId,
+                timestamp: Date.now(),
+                expiry: Date.now() + 300000 // 有効期限 5 分
+            });
+            new QRCode(document.getElementById("qrcode"), qrData);
+        })
+        .catch(console.error);
+    </script>
 </body>
 </html>
