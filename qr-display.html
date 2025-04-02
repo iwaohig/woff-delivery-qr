@@ -6,30 +6,147 @@
     <title>社員証表示</title>
     <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        #card, #error {
+            width: 300px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            padding: 20px;
+        }
+        #card.hidden, #error.hidden {
+            display: none;
+        }
+        h1 {
+            font-size: 1.8rem;
+            color: #333333;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1rem;
+            color: #555555;
+            margin: 5px 0;
+        }
+        #qrcode {
+            margin-top: 20px;
+        }
+        #countdown {
+            font-size: 1.2rem;
+            color: #d9534f;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div id="card">
+    <!-- 社員証表示用カード -->
+    <div id="card" class="hidden">
         <h1>社員証</h1>
-        <p>名前: <span id="name"></span></p>
-        <p>ID: <span id="userId"></span></p>
+        <p>名前: <span id="name">Loading...</span></p>
+        <p>ID: <span id="userId">Loading...</span></p>
         <div id="qrcode"></div>
+        <p id="countdown">QRコードの有効期限: 残り <span id="timeRemaining">--:--</span></p>
     </div>
-    <script>
-        woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
-        .then(() => woff.getProfile())
-        .then(profile => {
-            document.getElementById("name").textContent = profile.displayName;
-            document.getElementById("userId").textContent = profile.userId;
 
-            const qrData = JSON.stringify({
-                displayName: profile.displayName,
-                userId: profile.userId,
-                timestamp: Date.now(),
-                expiry: Date.now() + 300000 // 有効期限 5 分
+    <!-- モバイル以外のエラー表示 -->
+    <div id="error" class="hidden">
+        <h1>モバイル専用</h1>
+        <p>このアプリケーションはモバイルデバイス専用です。</p>
+        <p>モバイルデバイスからアクセスしてください。</p>
+    </div>
+
+    <script>
+        // UTF-8エンコード用関数
+        function utf8ToBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        // カウントダウンを更新する関数
+        function startCountdown(expiryTimestamp) {
+            const countdownElement = document.getElementById("timeRemaining");
+
+            const interval = setInterval(() => {
+                const currentTimestamp = Date.now();
+                const timeLeft = expiryTimestamp - currentTimestamp;
+
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    countdownElement.textContent = "期限切れ";
+                } else {
+                    const minutes = Math.floor(timeLeft / 60000);
+                    const seconds = Math.floor((timeLeft % 60000) / 1000);
+                    countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+                }
+            }, 1000);
+        }
+
+        // モバイルデバイス判定関数
+        function isMobileDevice() {
+            return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        // 初期化処理
+        document.addEventListener("DOMContentLoaded", () => {
+            const cardElement = document.getElementById("card");
+            const errorElement = document.getElementById("error");
+
+            if (!isMobileDevice()) {
+                errorElement.classList.remove("hidden");
+                return;
+            }
+
+            cardElement.classList.remove("hidden");
+
+            woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" }) // 実際のWOFF IDを指定
+            .then(() => woff.getProfile())
+            .then(profile => {
+                console.log("Profile fetched successfully:", profile); // デバッグログ
+
+                // ユーザー情報をHTMLに表示
+                document.getElementById("name").textContent = profile.displayName || "N/A";
+                document.getElementById("userId").textContent = profile.userId || "N/A";
+
+                // QRコードのデータ作成
+                const expiryTimestamp = Date.now() + 300000; // 有効期限 5 分（ミリ秒単位）
+                const qrPayload = {
+                    displayName: profile.displayName || "Unknown",
+                    userId: profile.userId || "Unknown",
+                    timestamp: Date.now(),
+                    expiry: expiryTimestamp
+                };
+                const qrData = utf8ToBase64(JSON.stringify(qrPayload));
+                console.log("QR Code Data (Base64):", qrData); // デバッグログ
+
+                // QRコードを描画
+                new QRCode(document.getElementById("qrcode"), {
+                    text: qrData,
+                    width: 150,
+                    height: 150,
+                    correctLevel: QRCode.CorrectLevel.H // 高エラー訂正レベル
+                });
+
+                // カウントダウン開始
+                startCountdown(expiryTimestamp);
+            })
+            .catch(error => {
+                console.error("Error fetching profile or generating QR code:", error); // エラー内容を記録
+                document.getElementById("name").textContent = "Error";
+                document.getElementById("userId").textContent = "Error";
+                document.getElementById("qrcode").textContent = "QRコードの生成に失敗しました。";
+                document.getElementById("countdown").textContent = "カウントダウンの開始に失敗しました。";
             });
-            new QRCode(document.getElementById("qrcode"), qrData);
-        })
-        .catch(console.error);
+        });
     </script>
 </body>
 </html>
