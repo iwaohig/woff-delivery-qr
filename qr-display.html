@@ -2,29 +2,32 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>納品 QR 表示（有効期限付き）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; }
+    #qrcode { margin: 1.5rem auto; }
+  </style>
 </head>
 <body>
-  <div id="card">
-    <h1>納品伝票 QR</h1>
-    <p>名前: <span id="name"></span></p>
-    <p>ID: <span id="userId"></span></p>
-    <p>有効期限: <span id="expiry"></span></p>
-    <div id="qrcode"></div>
-    <pre id="jsonOutput"></pre>
-  </div>
+  <h1>納品 QR 表示（有効期限付き）</h1>
+  <p>名前: <span id="name"></span></p>
+  <p>ID: <span id="userId"></span></p>
+  <p>有効期限: <span id="expiry"></span></p>
+  <div id="qrcode"></div>
+  <pre id="info"></pre>
 
   <script>
-    woff.init({ woffId: "UJIJJ2e183Zr02slpgxZ1A" }) // ← 実際の WOFF ID に置き換えてください
+    woff.init({ woffId: "UJIJJ2e183Zr02slpgxZ1A" })
       .then(() => woff.getProfile())
       .then(profile => {
         const now = Date.now();
-        const expiry = now + 5 * 60 * 1000; // 5 分後
+        const expiresIn = 5 * 60 * 1000; // 5分
+        const expiry = now + expiresIn;
 
-        const qrPayload = {
+        const deliveryInfo = {
           deliveryId: "DLV20250402-00123",
           estimatedDate: "2025-04-03",
           client: "株式会社ABC 横浜支店",
@@ -38,22 +41,29 @@
 
         document.getElementById("name").textContent = profile.displayName;
         document.getElementById("userId").textContent = profile.userId;
+        document.getElementById("expiry").textContent = new Date(expiry).toLocaleString();
+        document.getElementById("info").textContent = JSON.stringify(deliveryInfo, null, 2);
 
-        // 有効期限を日時文字列にして表示
-        const expiryDate = new Date(expiry);
-        document.getElementById("expiry").textContent = expiryDate.toLocaleString();
+        // DOM準備後にQR生成（タイミング回避用）
+        setTimeout(() => {
+          const qrTarget = document.getElementById("qrcode");
+          if (qrTarget) {
+            new QRCode(qrTarget, {
+              text: JSON.stringify(deliveryInfo),
+              width: 256,
+              height: 256
+            });
+          } else {
+            alert("QRコードの描画エリアが見つかりませんでした。");
+          }
+        }, 100);
 
-        // JSON 表示（デバッグ用）
-        document.getElementById("jsonOutput").textContent = JSON.stringify(qrPayload, null, 2);
-
-        // QR コード生成
-        new QRCode(document.getElementById("qrcode"), {
-          text: JSON.stringify(qrPayload),
-          width: 256,
-          height: 256
-        });
+        woff.setTitle("納品QR（" + profile.displayName + "）");
       })
-      .catch(console.error);
+      .catch(err => {
+        alert("WOFF 初期化エラー: " + err.message);
+        console.error(err);
+      });
   </script>
 </body>
 </html>
