@@ -1,3 +1,4 @@
+<!-- qr-display.html - 配送担当者向け 納品伝票 QR 表示アプリ（canvas 描画アプローチ） -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -5,22 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>納品 QR 表示</title>
   <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; }
+    canvas { margin-top: 1.5rem; }
+  </style>
 </head>
 <body>
-  <div id="card">
-    <h1>納品 QR 表示</h1>
-    <p>名前: <span id="name"></span></p>
-    <p>ID: <span id="userId"></span></p>
-    <p>有効期限: <span id="expiry"></span></p>
-    <div id="qrcode"></div>
-    <pre id="info"></pre>
-  </div>
+  <h1>納品 QR 表示</h1>
+  <p>名前: <span id="name"></span></p>
+  <p>ID: <span id="userId"></span></p>
+  <p>有効期限: <span id="expiry"></span></p>
+  <canvas id="qrcode"></canvas>
+  <pre id="info"></pre>
 
   <script>
     woff.init({ woffId: "UJIJJ2e183Zr02slpgxZ1A" })
       .then(() => woff.getProfile())
-      .then(profile => {
+      .then(async profile => {
         const now = Date.now();
         const expiry = now + 5 * 60 * 1000; // 5分後
 
@@ -36,17 +39,22 @@
           expiry: expiry
         };
 
-        // 表示処理
+        // 表示
         document.getElementById("name").textContent = profile.displayName;
         document.getElementById("userId").textContent = profile.userId;
         document.getElementById("expiry").textContent = new Date(expiry).toLocaleString();
         document.getElementById("info").textContent = JSON.stringify(deliveryInfo, null, 2);
 
-        // QR コード生成
-        const qrTarget = document.getElementById("qrcode");
-qrTarget.innerHTML = "";
-const qr = new QRCode(qrTarget, { width: 256, height: 256 });
-qr.makeCode(JSON.stringify(deliveryInfo));
+        // QRコードをCanvasに描画
+        try {
+          await QRCode.toCanvas(
+            document.getElementById("qrcode"),
+            JSON.stringify(deliveryInfo),
+            { width: 256 }
+          );
+        } catch (err) {
+          console.error("QR描画エラー:", err);
+        }
       })
       .catch(err => {
         alert("WOFF 初期化エラー: " + err.message);
