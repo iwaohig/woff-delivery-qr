@@ -1,3 +1,4 @@
+<!-- qr-display.html - 配送担当者向け 納品伝票 QR 表示アプリ（社員証アプリベースに改修） -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -41,7 +42,6 @@
     }
     #qrcode {
       margin-top: 20px;
-      word-break: break-word;
     }
     #countdown {
       font-size: 1.2rem;
@@ -103,7 +103,7 @@
 
       cardElement.classList.remove("hidden");
 
-      woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
+      woff.init({ woffId: "UJIJJ2e183Zr02slpgxZ1A" })
         .then(() => woff.getProfile())
         .then(profile => {
           document.getElementById("name").textContent = profile.displayName || "N/A";
@@ -122,20 +122,14 @@
             expiry: expiryTimestamp
           };
 
-          try {
-            const qrData = utf8ToBase64(JSON.stringify(deliveryPayload));
-            // document.getElementById("qrcode").textContent = "生成するQRデータ: " + qrData;
+          const qrData = utf8ToBase64(JSON.stringify(deliveryPayload));
 
-            new QRCode(document.getElementById("qrcode"), {
-              text: qrData,
-              width: 150,
-              height: 150,
-              correctLevel: QRCode.CorrectLevel.H
-            });
-          } catch (err) {
-            document.getElementById("qrcode").textContent =
-              "QRコードの生成に失敗しました。\n" + (err?.message || err);
-          }
+          new QRCode(document.getElementById("qrcode"), {
+            text: qrData,
+            width: 240, // サイズ拡大
+            height: 240,
+            correctLevel: QRCode.CorrectLevel.H
+          });
 
           startCountdown(expiryTimestamp);
         })
