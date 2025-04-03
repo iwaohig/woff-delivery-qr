@@ -103,7 +103,7 @@
 
       cardElement.classList.remove("hidden");
 
-      woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
+      woff.init({ woffId: "UJIJJ2e183Zr02slpgxZ1A" })
         .then(() => woff.getProfile())
         .then(profile => {
           document.getElementById("name").textContent = profile.displayName || "N/A";
@@ -124,7 +124,7 @@
 
           try {
             const qrData = utf8ToBase64(JSON.stringify(deliveryPayload));
-            document.getElementById("qrcode").textContent = "生成するQRデータ: " + qrData;
+            // document.getElementById("qrcode").textContent = "生成するQRデータ: " + qrData;
 
             new QRCode(document.getElementById("qrcode"), {
               text: qrData,
