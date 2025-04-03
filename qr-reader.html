@@ -3,149 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>納品 QR 読み取り</title>
-  <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
+  <title>納品明細</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 20px;
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-top: 20px;
-      cursor: pointer;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 16px;
+    h1 {
+      font-size: 24px;
       color: #333;
-      white-space: pre-wrap;
     }
-    #confirmButton, #detailLink {
-      display: none;
-      margin-top: 10px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
-    #confirmButton {
-      background-color: #28a745;
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    .back-button {
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #007bff;
       color: white;
       border: none;
       border-radius: 5px;
-    }
-    #detailLink {
-      display: block;
-      text-decoration: underline;
-      color: #007bff;
-      font-size: 14px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <button id="scan">納品 QR をスキャン</button>
-  <div id="result"></div>
-  <button id="confirmButton">受領</button>
-  <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
+  <h1>納品明細</h1>
+  <p><strong>納品ID:</strong> DLV20250402-00123</p>
+  <p><strong>納品先:</strong> 株式会社ABC 横浜支店</p>
+  <p><strong>納品日:</strong> 2025年4月3日</p>
 
-  <script>
-    const callbackUrl = "https://prod-02.japaneast.logic.azure.com:443/workflows/b48ed1bad1d6474088765a5d0d477394/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qkgwdvs50zSOAkBgYxh-pgbmju4XMIei3Q4HG-W6yNE";
+  <table>
+    <thead>
+      <tr>
+        <th>商品名</th>
+        <th>数量</th>
+        <th>単位</th>
+        <th>備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>ミネラルウォーター 500ml</td>
+        <td>24</td>
+        <td>本</td>
+        <td>箱入り</td>
+      </tr>
+      <tr>
+        <td>お茶（ペットボトル）</td>
+        <td>12</td>
+        <td>本</td>
+        <td>緑茶</td>
+      </tr>
+      <tr>
+        <td>レトルトカレー</td>
+        <td>10</td>
+        <td>個</td>
+        <td>中辛</td>
+      </tr>
+    </tbody>
+  </table>
 
-    const messages = {
-      scanning: "スキャン中...",
-      scanQr: "納品 QR をスキャン",
-      expired: "QRコードの有効期限が切れています。",
-      invalid: "無効な QR コードです。",
-      initError: "初期化に失敗しました。",
-      sendSuccess: "受領情報を送信しました。",
-      sendError: "受領通知の送信に失敗しました。"
-    };
-
-    function base64ToUtf8(str) {
-      return decodeURIComponent(escape(atob(str)));
-    }
-
-    function showMessage(msg) {
-      document.getElementById("result").textContent = msg;
-    }
-
-    async function sendToCallback(data) {
-      try {
-        const res = await fetch(callbackUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          showMessage(messages.sendSuccess);
-        } else {
-          showMessage(messages.sendError);
-          console.error(await res.text());
-        }
-      } catch (err) {
-        console.error(err);
-        showMessage(messages.sendError);
-      }
-    }
-
-    let pendingPayload = null;
-
-    woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
-      .then(() => {
-        document.getElementById("scan").addEventListener("click", async () => {
-          const button = document.getElementById("scan");
-          const confirmBtn = document.getElementById("confirmButton");
-          const detailLink = document.getElementById("detailLink");
-          button.disabled = true;
-          button.textContent = messages.scanning;
-
-          try {
-            const profile = await woff.getProfile();
-            const scanResult = await woff.scanQR();
-            const decoded = base64ToUtf8(scanResult.value);
-            const qrData = JSON.parse(decoded);
-
-            const now = Date.now();
-            if (now > qrData.expiry) {
-              showMessage(messages.expired);
-              return;
-            }
-
-            const info = `納品ID: ${qrData.deliveryId}\n納品先: ${qrData.client}\n配達担当: ${qrData.deliveryPerson?.name || "不明"}`;
-            showMessage(info);
-
-            pendingPayload = {
-              deliveryId: qrData.deliveryId,
-              client: qrData.client,
-              配達担当者: qrData.deliveryPerson?.name || "不明",
-              配達担当者ID: qrData.deliveryPerson?.userId || "不明",
-              受領者: profile.displayName,
-              受領者ID: profile.userId,
-              受領時刻: new Date().toISOString()
-            };
-
-            confirmBtn.style.display = "inline-block";
-            detailLink.style.display = "inline-block";
-          } catch (err) {
-            console.error("スキャンエラー:", err);
-            showMessage(messages.invalid);
-          } finally {
-            button.disabled = false;
-            button.textContent = messages.scanQr;
-          }
-        });
-
-        document.getElementById("confirmButton").addEventListener("click", async () => {
-          if (pendingPayload) {
-            await sendToCallback(pendingPayload);
-            pendingPayload = null;
-            document.getElementById("confirmButton").style.display = "none";
-          }
-        });
-      })
-      .catch(err => {
-        console.error("WOFF初期化失敗:", err);
-        showMessage(messages.initError);
-      });
-  </script>
+  <button class="back-button" onclick="window.close();">戻る</button>
 </body>
 </html>
