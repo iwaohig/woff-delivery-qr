@@ -23,11 +23,19 @@
       color: #333;
       white-space: pre-wrap;
     }
+    #confirmButton {
+      display: none;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
   <button id="scan">納品 QR をスキャン</button>
   <div id="result"></div>
+  <button id="confirmButton">受領</button>
 
   <script>
     const callbackUrl = "https://prod-38.japaneast.logic.azure.com:443/workflows/41b49f9fc5cc4dc284d991b5ee04fd7e/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=E5GmmRSnjmrF-VV1220UrzOuvhn0ToxUrS_xiJcxEEA";
@@ -69,15 +77,18 @@
       }
     }
 
+    let pendingPayload = null;
+
     woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
       .then(() => {
         document.getElementById("scan").addEventListener("click", async () => {
           const button = document.getElementById("scan");
+          const confirmBtn = document.getElementById("confirmButton");
           button.disabled = true;
           button.textContent = messages.scanning;
 
           try {
-            const profile = await woff.getProfile(); // スキャンした人の情報
+            const profile = await woff.getProfile();
             const scanResult = await woff.scanQR();
             const decoded = base64ToUtf8(scanResult.value);
             const qrData = JSON.parse(decoded);
@@ -88,13 +99,10 @@
               return;
             }
 
-            const info = `納品ID: ${qrData.deliveryId}
-納品先: ${qrData.client}
-配達担当: ${qrData.deliveryPerson?.name || "不明"}
-（有効期限: ${new Date(qrData.expiry).toLocaleString()}）`;
+            const info = `納品ID: ${qrData.deliveryId}\n納品先: ${qrData.client}\n配達担当: ${qrData.deliveryPerson?.name || "不明"}`;
             showMessage(info);
 
-            const payload = {
+            pendingPayload = {
               deliveryId: qrData.deliveryId,
               client: qrData.client,
               配達担当者: qrData.deliveryPerson?.name || "不明",
@@ -104,13 +112,21 @@
               受領時刻: new Date().toISOString()
             };
 
-            await sendToCallback(payload);
+            confirmBtn.style.display = "inline-block";
           } catch (err) {
             console.error("スキャンエラー:", err);
             showMessage(messages.invalid);
           } finally {
             button.disabled = false;
             button.textContent = messages.scanQr;
+          }
+        });
+
+        document.getElementById("confirmButton").addEventListener("click", async () => {
+          if (pendingPayload) {
+            await sendToCallback(pendingPayload);
+            pendingPayload = null;
+            document.getElementById("confirmButton").style.display = "none";
           }
         });
       })
