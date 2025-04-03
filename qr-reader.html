@@ -23,12 +23,21 @@
       color: #333;
       white-space: pre-wrap;
     }
-    #confirmButton {
+    #confirmButton, #detailLink {
       display: none;
+      margin-top: 10px;
+    }
+    #confirmButton {
       background-color: #28a745;
       color: white;
       border: none;
       border-radius: 5px;
+    }
+    #detailLink {
+      display: block;
+      text-decoration: underline;
+      color: #007bff;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -36,6 +45,7 @@
   <button id="scan">納品 QR をスキャン</button>
   <div id="result"></div>
   <button id="confirmButton">受領</button>
+  <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
 
   <script>
     const callbackUrl = "https://prod-02.japaneast.logic.azure.com:443/workflows/b48ed1bad1d6474088765a5d0d477394/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qkgwdvs50zSOAkBgYxh-pgbmju4XMIei3Q4HG-W6yNE";
@@ -84,6 +94,7 @@
         document.getElementById("scan").addEventListener("click", async () => {
           const button = document.getElementById("scan");
           const confirmBtn = document.getElementById("confirmButton");
+          const detailLink = document.getElementById("detailLink");
           button.disabled = true;
           button.textContent = messages.scanning;
 
@@ -113,6 +124,7 @@
             };
 
             confirmBtn.style.display = "inline-block";
+            detailLink.style.display = "inline-block";
           } catch (err) {
             console.error("スキャンエラー:", err);
             showMessage(messages.invalid);
