@@ -42,40 +42,74 @@
 <body>
   <h1>納品明細</h1>
   <p><strong>納品ID:</strong> DLV20250402-00123</p>
-  <p><strong>納品先:</strong> 株式会社ABC 横浜支店</p>
-  <p><strong>納品日:</strong> 2025年4月3日</p>
+  <p><strong>納品先:</strong> <span id="clientName"></span></p>
+  <p><strong>納品日:</strong> <span id="today"></span></p>
 
   <table>
     <thead>
       <tr>
-        <th>商品名</th>
+        <th>品名</th>
         <th>数量</th>
         <th>単位</th>
         <th>備考</th>
       </tr>
     </thead>
-    <tbody>
-      <tr>
-        <td>ミネラルウォーター 500ml</td>
-        <td>24</td>
-        <td>本</td>
-        <td>箱入り</td>
-      </tr>
-      <tr>
-        <td>お茶（ペットボトル）</td>
-        <td>12</td>
-        <td>本</td>
-        <td>緑茶</td>
-      </tr>
-      <tr>
-        <td>レトルトカレー</td>
-        <td>10</td>
-        <td>個</td>
-        <td>中辛</td>
-      </tr>
+    <tbody id="itemList">
     </tbody>
   </table>
 
   <button class="back-button" onclick="window.close();">戻る</button>
+
+  <script>
+    const clients = [
+      "西東京中央病院",
+      "ケアガーデン桜台",
+      "あおば薬局 横浜店",
+      "東名診療所",
+      "ケーエス在宅支援センター"
+    ];
+
+    const items = [
+      { name: "アセトアミノフェン錠 200mg", unit: "錠" },
+      { name: "クラリスロマイシン錠 200mg", unit: "錠" },
+      { name: "ソルラクト輸液 500ml", unit: "本" },
+      { name: "介護用おしりふき", unit: "袋" },
+      { name: "使い捨て手袋（Sサイズ）", unit: "箱" },
+      { name: "車いす（折りたたみ式）", unit: "台" },
+      { name: "ベッド用手すり", unit: "本" },
+      { name: "アルコール除菌シート", unit: "袋" },
+      { name: "滅菌ガーゼパック", unit: "袋" },
+      { name: "体位変換クッション", unit: "個" }
+    ];
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    document.getElementById("today").textContent = getToday();
+    document.getElementById("clientName").textContent = clients[getRandomInt(0, clients.length - 1)];
+
+    const tbody = document.getElementById("itemList");
+    const numItems = getRandomInt(3, 5);
+    const used = new Set();
+
+    for (let i = 0; i < numItems; i++) {
+      let idx;
+      do {
+        idx = getRandomInt(0, items.length - 1);
+      } while (used.has(idx));
+      used.add(idx);
+      const item = items[idx];
+      const qty = getRandomInt(5, 30);
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${item.name}</td><td>${qty}</td><td>${item.unit}</td><td></td>`;
+      tbody.appendChild(row);
+    }
+  </script>
 </body>
 </html>
