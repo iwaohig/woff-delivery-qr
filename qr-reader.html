@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>納品 QR 読み取り</title>
+  <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <button id="scan">納品 QR をスキャン</button>
+  <div id="result"></div>
+
+  <script>
+    const callbackUrl = "https://prod-38.japaneast.logic.azure.com:443/workflows/41b49f9fc5cc4dc284d991b5ee04fd7e/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=E5GmmRSnjmrF-VV1220UrzOuvhn0ToxUrS_xiJcxEEA";
+
+    const messages = {
+      scanning: "スキャン中...",
+      scanQr: "納品 QR をスキャン",
+      expired: "QRコードの有効期限が切れています。",
+      invalid: "無効な QR コードです。",
+      initError: "初期化に失敗しました。",
+      sendSuccess: "受領情報を送信しました。",
+      sendError: "受領通知の送信に失敗しました。"
+    };
+
+    function base64ToUtf8(str) {
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    function showMessage(msg) {
+      document.getElementById("result").textContent = msg;
+    }
+
+    async function sendToCallback(data) {
+      try {
+        const res = await fetch(callbackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          showMessage(messages.sendSuccess);
+        } else {
+          showMessage(messages.sendError);
+          console.error(await res.text());
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage(messages.sendError);
+      }
+    }
+
+    woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
+      .then(() => {
+        document.getElementById("scan").addEventListener("click", async () => {
+          const button = document.getElementById("scan");
+          button.disabled = true;
+          button.textContent = messages.scanning;
+
+          try {
+            const profile = await woff.getProfile(); // スキャンした人の情報
+            const scanResult = await woff.scanQR();
+            const decoded = base64ToUtf8(scanResult.value);
+            const qrData = JSON.parse(decoded);
+
+            const now = Date.now();
+            if (now > qrData.expiry) {
+              showMessage(messages.expired);
+              return;
+            }
+
+            const info = `納品ID: ${qrData.deliveryId}
+納品先: ${qrData.client}
+配達担当: ${qrData.deliveryPerson?.name || "不明"}
+（有効期限: ${new Date(qrData.expiry).toLocaleString()}）`;
+            showMessage(info);
+
+            const payload = {
+              deliveryId: qrData.deliveryId,
+              client: qrData.client,
+              配達担当者: qrData.deliveryPerson?.name || "不明",
+              配達担当者ID: qrData.deliveryPerson?.userId || "不明",
+              受領者: profile.displayName,
+              受領者ID: profile.userId,
+              受領時刻: new Date().toISOString()
+            };
+
+            await sendToCallback(payload);
+          } catch (err) {
+            console.error("スキャンエラー:", err);
+            showMessage(messages.invalid);
+          } finally {
+            button.disabled = false;
+            button.textContent = messages.scanQr;
+          }
+        });
+      })
+      .catch(err => {
+        console.error("WOFF初期化失敗:", err);
+        showMessage(messages.initError);
+      });
+  </script>
+</body>
+</html>
