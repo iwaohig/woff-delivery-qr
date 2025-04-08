@@ -41,7 +41,7 @@
 </head>
 <body>
   <h1>納品明細</h1>
-  <p><strong>納品ID:</strong> DLV20250402-00123</p>
+  <p><strong>納品ID:</strong> <span id="deliveryId"></span></p>
   <p><strong>納品先:</strong> <span id="clientName"></span></p>
   <p><strong>納品日:</strong> <span id="today"></span></p>
 
@@ -84,7 +84,8 @@
     }
 
     document.getElementById("today").textContent = getToday();
-    document.getElementById("clientName").textContent = clients[getRandomInt(0, clients.length - 1)];
+document.getElementById("deliveryId").textContent = new URLSearchParams(location.search).get("deliveryId") || "未指定";
+    document.getElementById("clientName").textContent = new URLSearchParams(location.search).get("client") || clients[0];
 
     const tbody = document.getElementById("itemList");
     const numItems = getRandomInt(3, 5);
