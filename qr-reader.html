@@ -32,7 +32,7 @@
 <body>
   <button id="scan">QR コードをスキャン</button>
   <div id="result"></div>
-  <a id="detailLink" href="#" target="_blank">納品明細を見る</a>
+  <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
 
   <script>
     const messages = {
@@ -46,10 +46,6 @@
 
     function base64ToUtf8(str) {
       return decodeURIComponent(escape(atob(str)));
-    }
-
-    function utf8ToBase64(str) {
-      return btoa(unescape(encodeURIComponent(str)));
     }
 
     woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
@@ -74,15 +70,6 @@
             }
 
             resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}`;
-
-            const summary = {
-              deliveryId: payload.deliveryId,
-              client: payload.client,
-              estimatedDate: payload.estimatedDate
-            };
-            const base64Data = utf8ToBase64(JSON.stringify(summary));
-
-            detailLink.href = `delivery-details.html?data=${encodeURIComponent(base64Data)}`;
             detailLink.style.display = "inline-block";
           } catch (e) {
             console.error(e);
