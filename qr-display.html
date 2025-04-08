@@ -89,35 +89,6 @@
       return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
 
-    function getRandomItems() {
-      const itemList = [
-        { name: "アセトアミノフェン錠 200mg", unit: "錠" },
-        { name: "クラリスロマイシン錠 200mg", unit: "錠" },
-        { name: "ソルラクト輸液 500ml", unit: "本" },
-        { name: "ヒューマログ注 3mL", unit: "本" },
-        { name: "ラシックス錠 20mg", unit: "錠" },
-        { name: "オルメサルタン錠 20mg", unit: "錠" },
-        { name: "プレドニゾロン錠 5mg", unit: "錠" },
-        { name: "カロナール錠 300mg", unit: "錠" }
-      ];
-      const count = Math.floor(Math.random() * 3) + 3;
-      const selected = [];
-      const used = new Set();
-      while (selected.length < count) {
-        const i = Math.floor(Math.random() * itemList.length);
-        if (!used.has(i)) {
-          used.add(i);
-          selected.push({
-            name: itemList[i].name,
-            unit: itemList[i].unit,
-            qty: Math.floor(Math.random() * 20) + 5,
-            note: ""
-          });
-        }
-      }
-      return selected;
-    }
-
     document.addEventListener("DOMContentLoaded", () => {
       const cardElement = document.getElementById("card");
       const errorElement = document.getElementById("error");
@@ -148,7 +119,6 @@
               userId: profile.userId,
               name: profile.displayName
             },
-            items: getRandomItems(),
             timestamp: Date.now(),
             expiry: expiryTimestamp
           };
