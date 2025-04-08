@@ -27,23 +27,18 @@
     th {
       background-color: #f0f0f0;
     }
-    .back-button {
+    #backBtn {
       margin-top: 30px;
       padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
       font-size: 16px;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <h1>納品明細</h1>
-  <p><strong>納品ID:</strong> <span id="deliveryId"></span></p>
-  <p><strong>納品先:</strong> <span id="clientName"></span></p>
-  <p><strong>納品日:</strong> <span id="today"></span></p>
+  <p><strong>納品ID:</strong> <span id="deliveryId">未指定</span></p>
+  <p><strong>納品先:</strong> <span id="client">未指定</span></p>
+  <p><strong>納品日:</strong> <span id="date">未指定</span></p>
 
   <table>
     <thead>
@@ -54,55 +49,56 @@
         <th>備考</th>
       </tr>
     </thead>
-    <tbody id="itemList">
-    </tbody>
+    <tbody id="itemTable"></tbody>
   </table>
 
-  <button class="back-button" onclick="window.close();">戻る</button>
+  <button id="backBtn" onclick="history.back()">戻る</button>
 
   <script>
-    const clients = ["ワークス中央病院"];
+  function base64ToUtf8(str) {
+    return decodeURIComponent(escape(atob(str)));
+  }
 
-    const items = [
-  { name: "アセトアミノフェン錠 200mg", unit: "錠" },
-  { name: "クラリスロマイシン錠 200mg", unit: "錠" },
-  { name: "ソルラクト輸液 500ml", unit: "本" },
-  { name: "ヒューマログ注 3mL", unit: "本" },
-  { name: "ラシックス錠 20mg", unit: "錠" },
-  { name: "オルメサルタン錠 20mg", unit: "錠" },
-  { name: "プレドニゾロン錠 5mg", unit: "錠" },
-  { name: "カロナール錠 300mg", unit: "錠" }
-];
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get("data");
 
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+  if (encoded) {
+    try {
+      const parsed = JSON.parse(base64ToUtf8(encoded));
+      document.getElementById("deliveryId").textContent = parsed.deliveryId;
+      document.getElementById("client").textContent = parsed.client;
+      document.getElementById("date").textContent = parsed.estimatedDate;
+
+      const table = document.getElementById("itemTable");
+      if (parsed.items && Array.isArray(parsed.items)) {
+        parsed.items.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.name}</td>
+            <td>${item.qty}</td>
+            <td>${item.unit}</td>
+            <td>${item.note || ""}</td>
+          `;
+          table.appendChild(tr);
+        });
+      }
+    } catch (e) {
+      console.error("データ読み込みエラー:", e);
     }
-
-    function getToday() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    document.getElementById("today").textContent = getToday();
-document.getElementById("deliveryId").textContent = new URLSearchParams(location.search).get("deliveryId") || "未指定";
-    document.getElementById("clientName").textContent = new URLSearchParams(location.search).get("client") || clients[0];
-
-    const tbody = document.getElementById("itemList");
-    const numItems = getRandomInt(3, 5);
-    const used = new Set();
-
-    for (let i = 0; i < numItems; i++) {
-      let idx;
-      do {
-        idx = getRandomInt(0, items.length - 1);
-      } while (used.has(idx));
-      used.add(idx);
-      const item = items[idx];
-      const qty = getRandomInt(5, 30);
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${item.name}</td><td>${qty}</td><td>${item.unit}</td><td></td>`;
-      tbody.appendChild(row);
-    }
-  </script>
+  }
+</script>
+<script>
+  // QR生成側と一致する医薬品リスト
+  const medicalItems = [
+    { name: "アセトアミノフェン錠 200mg", unit: "錠" },
+    { name: "クラリスロマイシン錠 200mg", unit: "錠" },
+    { name: "ソルラクト輸液 500ml", unit: "本" },
+    { name: "ヒューマログ注 3mL", unit: "本" },
+    { name: "ラシックス錠 20mg", unit: "錠" },
+    { name: "オルメサルタン錠 20mg", unit: "錠" },
+    { name: "プレドニゾロン錠 5mg", unit: "錠" },
+    { name: "カロナール錠 300mg", unit: "錠" }
+  ];
+</script>
 </body>
 </html>
