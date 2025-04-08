@@ -36,8 +36,8 @@
 </head>
 <body>
   <h1>納品明細</h1>
-  <p><strong>納品ID:</strong> <span id="deliveryId">未指定</span></p>
-  <p><strong>納品先:</strong> <span id="client">未指定</span></p>
+  <p><strong>納品ID:</strong> <span id="deliveryId">DLV20250408-99999</span></p>
+  <p><strong>納品先:</strong> <span id="client">ワークス中央病院</span></p>
   <p><strong>納品日:</strong> <span id="date">未指定</span></p>
 
   <table>
@@ -55,45 +55,6 @@
   <button id="backBtn" onclick="history.back()">戻る</button>
 
   <script>
-  function base64ToUtf8(str) {
-    return decodeURIComponent(escape(atob(str)));
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const encoded = params.get("data");
-
-  if (encoded) {
-    try {
-      const parsed = JSON.parse(base64ToUtf8(encoded));
-      document.getElementById("deliveryId").textContent = parsed.deliveryId;
-      document.getElementById("client").textContent = parsed.client;
-      document.getElementById("date").textContent = parsed.estimatedDate;
-
-      const table = document.getElementById("itemTable");
-      const count = Math.floor(Math.random() * 3) + 3;
-      const used = new Set();
-      while (used.size < count) {
-        const i = Math.floor(Math.random() * medicalItems.length);
-        if (!used.has(i)) {
-          used.add(i);
-          const item = medicalItems[i];
-          const qty = Math.floor(Math.random() * 20) + 5;
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.name}</td>
-            <td>${qty}</td>
-            <td>${item.unit}</td>
-            <td></td>
-          `;
-          table.appendChild(tr);
-        }
-      }
-    } catch (e) {
-      console.error("データ読み込みエラー:", e);
-    }
-  }
-<script>
-  // QR生成側と一致する医薬品リスト
   const medicalItems = [
     { name: "アセトアミノフェン錠 200mg", unit: "錠" },
     { name: "クラリスロマイシン錠 200mg", unit: "錠" },
@@ -104,6 +65,30 @@
     { name: "プレドニゾロン錠 5mg", unit: "錠" },
     { name: "カロナール錠 300mg", unit: "錠" }
   ];
-</script>
+
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0];
+  document.getElementById("date").textContent = dateStr;
+
+  const table = document.getElementById("itemTable");
+  const count = Math.floor(Math.random() * 3) + 3;
+  const used = new Set();
+  while (used.size < count) {
+    const i = Math.floor(Math.random() * medicalItems.length);
+    if (!used.has(i)) {
+      used.add(i);
+      const item = medicalItems[i];
+      const qty = Math.floor(Math.random() * 20) + 5;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${qty}</td>
+        <td>${item.unit}</td>
+        <td></td>
+      `;
+      table.appendChild(tr);
+    }
+  }
+  </script>
 </body>
 </html>
