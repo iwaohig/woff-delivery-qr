@@ -74,7 +74,6 @@
       const interval = setInterval(() => {
         const currentTimestamp = Date.now();
         const timeLeft = expiryTimestamp - currentTimestamp;
-
         if (timeLeft <= 0) {
           clearInterval(interval);
           countdownElement.textContent = "期限切れ";
@@ -88,6 +87,35 @@
 
     function isMobileDevice() {
       return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    function getRandomItems() {
+      const itemList = [
+        { name: "アセトアミノフェン錠 200mg", unit: "錠" },
+        { name: "クラリスロマイシン錠 200mg", unit: "錠" },
+        { name: "ソルラクト輸液 500ml", unit: "本" },
+        { name: "ヒューマログ注 3mL", unit: "本" },
+        { name: "ラシックス錠 20mg", unit: "錠" },
+        { name: "オルメサルタン錠 20mg", unit: "錠" },
+        { name: "プレドニゾロン錠 5mg", unit: "錠" },
+        { name: "カロナール錠 300mg", unit: "錠" }
+      ];
+      const count = Math.floor(Math.random() * 3) + 3;
+      const selected = [];
+      const used = new Set();
+      while (selected.length < count) {
+        const i = Math.floor(Math.random() * itemList.length);
+        if (!used.has(i)) {
+          used.add(i);
+          selected.push({
+            name: itemList[i].name,
+            unit: itemList[i].unit,
+            qty: Math.floor(Math.random() * 20) + 5,
+            note: ""
+          });
+        }
+      }
+      return selected;
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -107,20 +135,20 @@
           document.getElementById("name").textContent = profile.displayName || "N/A";
           document.getElementById("userId").textContent = profile.userId || "N/A";
 
-          const expiryTimestamp = Date.now() + 5 * 60 * 1000; // 5分
-
-          // ランダムな納品ID（例: DLV20250408-xxxxx）
+          const expiryTimestamp = Date.now() + 5 * 60 * 1000;
           const now = new Date();
-          const deliveryId = `DLV${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.floor(Math.random() * 90000 + 10000)}`;
+          const deliveryId = `DLV${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random() * 90000 + 10000)}`;
+          const clients = ["ワークス中央病院", "東都総合病院", "あさひ第一病院"];
 
           const deliveryPayload = {
             deliveryId: deliveryId,
             estimatedDate: now.toISOString().split('T')[0],
-            client: ["ワークス中央病院", "東都総合病院", "あさひ第一病院"][Math.floor(Math.random() * 3)],
+            client: clients[Math.floor(Math.random() * clients.length)],
             deliveryPerson: {
               userId: profile.userId,
               name: profile.displayName
             },
+            items: getRandomItems(),
             timestamp: Date.now(),
             expiry: expiryTimestamp
           };
