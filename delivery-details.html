@@ -3,102 +3,145 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>納品明細</title>
+  <title>納品 QR 表示</title>
+  <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+    #card, #error {
+      width: 300px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
       padding: 20px;
-      background-color: #f9f9f9;
+    }
+    #card.hidden, #error.hidden {
+      display: none;
     }
     h1 {
-      font-size: 24px;
-      color: #333;
+      font-size: 1.8rem;
+      color: #333333;
+      margin-bottom: 10px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    p {
+      font-size: 1rem;
+      color: #555555;
+      margin: 5px 0;
+    }
+    #qrcode {
       margin-top: 20px;
     }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    th {
-      background-color: #f0f0f0;
-    }
-    #backBtn {
-      margin-top: 30px;
-      padding: 10px 20px;
-      font-size: 16px;
+    #countdown {
+      font-size: 1.2rem;
+      color: #d9534f;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>納品明細</h1>
-  <p><strong>納品ID:</strong> <span id="deliveryId">未指定</span></p>
-  <p><strong>納品先:</strong> <span id="client">未指定</span></p>
-  <p><strong>納品日:</strong> <span id="date">未指定</span></p>
+  <div id="card" class="hidden">
+    <h1>納品 QR</h1>
+    <p>名前: <span id="name">Loading...</span></p>
+    <p>ID: <span id="userId">Loading...</span></p>
+    <div id="qrcode"></div>
+    <p id="countdown">QRコードの有効期限: 残り <span id="timeRemaining">--:--</span></p>
+  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>品名</th>
-        <th>数量</th>
-        <th>単位</th>
-        <th>備考</th>
-      </tr>
-    </thead>
-    <tbody id="itemTable"></tbody>
-  </table>
-
-  <button id="backBtn" onclick="history.back()">戻る</button>
+  <div id="error" class="hidden">
+    <h1>モバイル専用</h1>
+    <p>このアプリケーションはモバイルデバイス専用です。</p>
+    <p>モバイルデバイスからアクセスしてください。</p>
+  </div>
 
   <script>
-  function base64ToUtf8(str) {
-    return decodeURIComponent(escape(atob(str)));
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const encoded = params.get("data");
-
-  if (encoded) {
-    try {
-      const parsed = JSON.parse(base64ToUtf8(encoded));
-      document.getElementById("deliveryId").textContent = parsed.deliveryId;
-      document.getElementById("client").textContent = parsed.client;
-      document.getElementById("date").textContent = parsed.estimatedDate;
-
-      const table = document.getElementById("itemTable");
-      if (parsed.items && Array.isArray(parsed.items)) {
-        parsed.items.forEach(item => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.name}</td>
-            <td>${item.qty}</td>
-            <td>${item.unit}</td>
-            <td>${item.note || ""}</td>
-          `;
-          table.appendChild(tr);
-        });
-      }
-    } catch (e) {
-      console.error("データ読み込みエラー:", e);
+    function utf8ToBase64(str) {
+      return btoa(unescape(encodeURIComponent(str)));
     }
-  }
-</script>
-<script>
-  // QR生成側と一致する医薬品リスト
-  const medicalItems = [
-    { name: "アセトアミノフェン錠 200mg", unit: "錠" },
-    { name: "クラリスロマイシン錠 200mg", unit: "錠" },
-    { name: "ソルラクト輸液 500ml", unit: "本" },
-    { name: "ヒューマログ注 3mL", unit: "本" },
-    { name: "ラシックス錠 20mg", unit: "錠" },
-    { name: "オルメサルタン錠 20mg", unit: "錠" },
-    { name: "プレドニゾロン錠 5mg", unit: "錠" },
-    { name: "カロナール錠 300mg", unit: "錠" }
-  ];
-</script>
+
+    function startCountdown(expiryTimestamp) {
+      const countdownElement = document.getElementById("timeRemaining");
+      const interval = setInterval(() => {
+        const currentTimestamp = Date.now();
+        const timeLeft = expiryTimestamp - currentTimestamp;
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          countdownElement.textContent = "期限切れ";
+        } else {
+          const minutes = Math.floor(timeLeft / 60000);
+          const seconds = Math.floor((timeLeft % 60000) / 1000);
+          countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+        }
+      }, 1000);
+    }
+
+    function isMobileDevice() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const cardElement = document.getElementById("card");
+      const errorElement = document.getElementById("error");
+
+      if (!isMobileDevice()) {
+        errorElement.classList.remove("hidden");
+        return;
+      }
+
+      cardElement.classList.remove("hidden");
+
+      woff.init({ woffId: "aQQ-OWCExufbfTtzIha75A" })
+        .then(() => woff.getProfile())
+        .then(profile => {
+          document.getElementById("name").textContent = profile.displayName || "N/A";
+          document.getElementById("userId").textContent = profile.userId || "N/A";
+
+          const expiryTimestamp = Date.now() + 5 * 60 * 1000;
+          const now = new Date();
+          const deliveryId = `DLV${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random() * 90000 + 10000)}`;
+          const clients = ["ワークス中央病院", "東都総合病院", "あさひ第一病院"];
+
+          const deliveryPayload = {
+            deliveryId: deliveryId,
+            estimatedDate: now.toISOString().split('T')[0],
+            client: clients[Math.floor(Math.random() * clients.length)],
+            deliveryPerson: {
+              userId: profile.userId,
+              name: profile.displayName
+            },
+            timestamp: Date.now(),
+            expiry: expiryTimestamp
+          };
+
+          const qrData = utf8ToBase64(JSON.stringify(deliveryPayload));
+
+          new QRCode(document.getElementById("qrcode"), {
+            text: qrData,
+            width: 240,
+            height: 240,
+            correctLevel: QRCode.CorrectLevel.H
+          });
+
+          startCountdown(expiryTimestamp);
+        })
+        .catch(error => {
+          console.error("エラー:", error);
+          document.getElementById("name").textContent = "Error";
+          document.getElementById("userId").textContent = "Error";
+          document.getElementById("qrcode").textContent = "QRコードの生成に失敗しました。";
+          document.getElementById("countdown").textContent = "カウントダウンの開始に失敗しました。";
+        });
+    });
+  </script>
 </body>
 </html>
