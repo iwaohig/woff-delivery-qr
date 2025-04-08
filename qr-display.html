@@ -116,7 +116,7 @@
           const deliveryPayload = {
             deliveryId: deliveryId,
             estimatedDate: now.toISOString().split('T')[0],
-            client: "ワークス中央病院",
+            client: ["ワークス中央病院", "東都総合病院", "あさひ第一病院"][Math.floor(Math.random() * 3)],
             deliveryPerson: {
               userId: profile.userId,
               name: profile.displayName
