@@ -47,7 +47,8 @@
       expired: "期限切れの QR コードです。",
       invalid: "無効な QR コードです。",
       scanError: "QR コードのスキャン中にエラーが発生しました。",
-      initError: "アプリの初期化に失敗しました。",
+      initError: "アプリの初期化に失敗しました。"," +
+        "
       sendSuccess: "受領処理が完了しました！",
       sendError: "送信中にエラーが発生しました。",
     };
@@ -104,6 +105,7 @@
               resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
               detailLink.style.display = "inline-block";
               submitButton.style.display = "inline-block";
+              submitButton.disabled = false;
 
             } catch (e) {
               console.error(e);
@@ -117,6 +119,7 @@
 
           submitButton.addEventListener("click", async () => {
             if (!scanResult) return;
+            submitButton.disabled = true; // 二重送信防止
             try {
               const response = await fetch(callbackUrl, {
                 method: "POST",
