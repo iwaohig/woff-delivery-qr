@@ -58,77 +58,60 @@
       return decodeURIComponent(escape(atob(str)));
     }
 
-    woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })  // 修正: woffIdを正しいIDに設定
-      .then(() => {
-        let scanResult = null;
-        document.getElementById("scan").addEventListener("click", async () => {
+    // ページが完全に読み込まれた後に実行
+    document.addEventListener("DOMContentLoaded", () => {
+      woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
+        .then(() => {
+          let scanResult = null;
           const scanButton = document.getElementById("scan");
           const resultEl = document.getElementById("result");
           const detailLink = document.getElementById("detailLink");
           const errorMessage = document.getElementById("errorMessage");
-          scanButton.disabled = true;
-          scanButton.textContent = messages.scanning;
 
-          resultEl.textContent = "";
-          detailLink.style.display = "none";
-          errorMessage.style.display = "none";  // エラーメッセージを非表示に
+          scanButton.addEventListener("click", async () => {
+            scanButton.disabled = true;
+            scanButton.textContent = messages.scanning;
 
-          try {
-            const scanData = await woff.scanQR(); // QRコードスキャン
-            const decoded = base64ToUtf8(scanData.value); // デコード
-            const payload = JSON.parse(decoded);
+            resultEl.textContent = "";
+            detailLink.style.display = "none";
+            errorMessage.style.display = "none";  // エラーメッセージを非表示に
 
-            if (Date.now() > payload.expiry) {
-              resultEl.textContent = messages.expired;
-              return;
+            try {
+              const scanData = await woff.scanQR(); // QRコードスキャン
+              const decoded = base64ToUtf8(scanData.value); // デコード
+              const payload = JSON.parse(decoded);
+
+              if (Date.now() > payload.expiry) {
+                resultEl.textContent = messages.expired;
+                return;
+              }
+
+              scanResult = {
+                "納品ID": payload.deliveryId,
+                "納品先": payload.client,
+                "配送担当者": payload.deliveryPerson.name,  // 配送担当者の名前
+                "配送担当者ID": payload.deliveryPerson.userId,  // 配送担当者のID
+                "受領時刻": new Date().toISOString()
+              };
+
+              resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
+              detailLink.style.display = "inline-block"; // 明細リンク表示
+            } catch (e) {
+              console.error(e);
+              errorMessage.textContent = messages.invalid;  // エラーメッセージを表示
+              errorMessage.style.display = "block";  // エラーメッセージを表示
+            } finally {
+              scanButton.disabled = false;
+              scanButton.textContent = messages.scanQr;
             }
-
-            scanResult = {
-              "納品ID": payload.deliveryId,
-              "納品先": payload.client,
-              "配送担当者": payload.deliveryPerson.name,  // 配送担当者の名前
-              "配送担当者ID": payload.deliveryPerson.userId,  // 配送担当者のID
-              "受領時刻": new Date().toISOString()
-            };
-
-            resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
-            detailLink.style.display = "inline-block"; // 明細リンク表示
-          } catch (e) {
-            console.error(e);
-            errorMessage.textContent = messages.invalid;  // エラーメッセージを表示
-            errorMessage.style.display = "block";  // エラーメッセージを表示
-          } finally {
-            scanButton.disabled = false;
-            scanButton.textContent = messages.scanQr;
-          }
+          });
+        })
+        .catch(error => {
+          console.error("初期化エラー:", error);
+          document.getElementById("errorMessage").textContent = "アプリの初期化に失敗しました。エラー詳細: " + error.message;
+          document.getElementById("errorMessage").style.display = "block";  // エラーメッセージ表示
         });
-
-        // 受領ボタンがクリックされたときに送信処理を実行
-        document.getElementById("submit").addEventListener("click", async () => {
-          if (!scanResult) return;
-          try {
-            const response = await fetch(callbackUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(scanResult) // 配送担当者情報を含めたデータを送信
-            });
-            if (response.ok) {
-              alert(messages.sendSuccess);
-            } else {
-              alert(messages.sendError);
-              console.error(await response.text());
-            }
-          } catch (e) {
-            alert(messages.sendError);
-            console.error(e);
-          }
-        });
-      })
-      .catch(error => {
-        console.error("初期化エラー:", error);
-        document.getElementById("errorMessage").textContent = "アプリの初期化に失敗しました。エラー詳細: " + error.message;
-        document.getElementById("errorMessage").style.display = "block";  // エラーメッセージ表示
-      });
+    });
   </script>
 </body>
 </html>
