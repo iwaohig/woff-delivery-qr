@@ -33,7 +33,6 @@
   <button id="scan">QR コードをスキャン</button>
   <div id="result"></div>
   <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
-  <button id="submit" style="display:none; margin-top: 10px; background-color: #4CAF50; color: white; border: none;">受領</button>
 
   <script>
     const messages = {
@@ -43,12 +42,13 @@
       invalid: "無効な QR コードです。",
       scanError: "QR コードのスキャン中にエラーが発生しました。",
       initError: "アプリの初期化に失敗しました。",
-      sendSuccess: "受領処理が完了しました。",
-      sendError: "送信中にエラーが発生しました。"
+      sendSuccess: "受領処理が完了しました！",
+      sendError: "送信中にエラーが発生しました。",
     };
 
     const callbackUrl = "https://prod-02.japaneast.logic.azure.com:443/workflows/b48ed1bad1d6474088765a5d0d477394/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qkgwdvs50zSOAkBgYxh-pgbmju4XMIei3Q4HG-W6yNE";
 
+    // Base64デコード用関数
     function base64ToUtf8(str) {
       return decodeURIComponent(escape(atob(str)));
     }
@@ -60,18 +60,15 @@
           const scanButton = document.getElementById("scan");
           const resultEl = document.getElementById("result");
           const detailLink = document.getElementById("detailLink");
-          const submitButton = document.getElementById("submit");
-
           scanButton.disabled = true;
           scanButton.textContent = messages.scanning;
+
           resultEl.textContent = "";
           detailLink.style.display = "none";
-          submitButton.style.display = "none";
 
           try {
-            const profile = await woff.getProfile();
-            const scanData = await woff.scanQR();
-            const decoded = base64ToUtf8(scanData.value);
+            const scanData = await woff.scanQR(); // QRコードスキャン
+            const decoded = base64ToUtf8(scanData.value); // デコード
             const payload = JSON.parse(decoded);
 
             if (Date.now() > payload.expiry) {
@@ -79,17 +76,17 @@
               return;
             }
 
+            // QRコードから配送担当者情報も取得
             scanResult = {
               "納品ID": payload.deliveryId,
               "納品先": payload.client,
-              "受領者": profile.displayName,
-              "受領者ID": profile.userId,
+              "配送担当者": payload.deliveryPerson.name,  // 配送担当者の名前
+              "配送担当者ID": payload.deliveryPerson.userId,  // 配送担当者のID
               "受領時刻": new Date().toISOString()
             };
 
-            resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}`;
-            detailLink.style.display = "inline-block";
-            submitButton.style.display = "inline-block";
+            resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
+            detailLink.style.display = "inline-block"; // 明細リンク表示
           } catch (e) {
             console.error(e);
             resultEl.textContent = messages.invalid;
@@ -99,13 +96,14 @@
           }
         });
 
+        // 受領ボタンがクリックされたときに送信処理を実行
         document.getElementById("submit").addEventListener("click", async () => {
           if (!scanResult) return;
           try {
             const response = await fetch(callbackUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(scanResult)
+              body: JSON.stringify(scanResult) // 配送担当者情報を含めたデータを送信
             });
             if (response.ok) {
               alert(messages.sendSuccess);
