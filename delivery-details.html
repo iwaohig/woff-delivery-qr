@@ -52,7 +52,7 @@
     <tbody id="itemTable"></tbody>
   </table>
 
-  <button id="backBtn" onclick="history.back()">戻る</button>
+  <button id="backBtn">戻る</button>
 
   <script>
   const medicalItems = [
@@ -89,6 +89,15 @@
       table.appendChild(tr);
     }
   }
+
+  // 戻るボタン：window.opener がある場合はそのウィンドウに戻る
+  document.getElementById("backBtn").addEventListener("click", () => {
+    if (window.opener && !window.opener.closed) {
+      window.close();
+    } else if (window.history.length > 1) {
+      history.back();
+    }
+  });
   </script>
 </body>
 </html>
