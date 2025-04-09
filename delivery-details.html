@@ -32,6 +32,14 @@
       padding: 10px 20px;
       font-size: 16px;
     }
+    #debug {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #555;
+      background: #fff3cd;
+      padding: 10px;
+      border: 1px solid #ffeeba;
+    }
   </style>
 </head>
 <body>
@@ -53,6 +61,7 @@
   </table>
 
   <button id="backBtn">戻る</button>
+  <div id="debug"></div>
 
   <script>
   const medicalItems = [
@@ -90,12 +99,23 @@
     }
   }
 
-  // 戻るボタン：window.opener がある場合はそのウィンドウに戻る
+  // デバッグ情報表示
+  const debug = document.getElementById("debug");
+  debug.innerHTML = `
+    <strong>デバッグ情報:</strong><br>
+    window.history.length: ${window.history.length}<br>
+    window.opener: ${window.opener ? 'あり' : 'なし'}<br>
+    window.opener.closed: ${window.opener ? window.opener.closed : 'N/A'}<br>
+    location.href: ${location.href}
+  `;
+
   document.getElementById("backBtn").addEventListener("click", () => {
     if (window.opener && !window.opener.closed) {
       window.close();
     } else if (window.history.length > 1) {
       history.back();
+    } else {
+      debug.innerHTML += "<br>戻る手段が見つかりませんでした。";
     }
   });
   </script>
