@@ -36,6 +36,7 @@
 <body>
   <button id="scan">QR コードをスキャン</button>
   <div id="result"></div>
+  <button id="submit" style="display:none;">受領</button>
   <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
   <div id="errorMessage" style="display:none;"></div>
 
@@ -53,17 +54,16 @@
 
     const callbackUrl = "https://prod-02.japaneast.logic.azure.com:443/workflows/b48ed1bad1d6474088765a5d0d477394/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qkgwdvs50zSOAkBgYxh-pgbmju4XMIei3Q4HG-W6yNE";
 
-    // Base64デコード用関数
     function base64ToUtf8(str) {
       return decodeURIComponent(escape(atob(str)));
     }
 
-    // ページが完全に読み込まれた後に実行
     document.addEventListener("DOMContentLoaded", () => {
       woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
         .then(() => {
           let scanResult = null;
           const scanButton = document.getElementById("scan");
+          const submitButton = document.getElementById("submit");
           const resultEl = document.getElementById("result");
           const detailLink = document.getElementById("detailLink");
           const errorMessage = document.getElementById("errorMessage");
@@ -74,11 +74,12 @@
 
             resultEl.textContent = "";
             detailLink.style.display = "none";
-            errorMessage.style.display = "none";  // エラーメッセージを非表示に
+            submitButton.style.display = "none";
+            errorMessage.style.display = "none";
 
             try {
-              const scanData = await woff.scanQR(); // QRコードスキャン
-              const decoded = base64ToUtf8(scanData.value); // デコード
+              const scanData = await woff.scanQR();
+              const decoded = base64ToUtf8(scanData.value);
               const payload = JSON.parse(decoded);
 
               if (Date.now() > payload.expiry) {
@@ -89,27 +90,49 @@
               scanResult = {
                 "納品ID": payload.deliveryId,
                 "納品先": payload.client,
-                "配送担当者": payload.deliveryPerson.name,  // 配送担当者の名前
-                "配送担当者ID": payload.deliveryPerson.userId,  // 配送担当者のID
+                "配送担当者": payload.deliveryPerson.name,
+                "配送担当者ID": payload.deliveryPerson.userId,
                 "受領時刻": new Date().toISOString()
               };
 
               resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
-              detailLink.style.display = "inline-block"; // 明細リンク表示
+              detailLink.style.display = "inline-block";
+              submitButton.style.display = "inline-block";
+
             } catch (e) {
               console.error(e);
-              errorMessage.textContent = messages.invalid;  // エラーメッセージを表示
-              errorMessage.style.display = "block";  // エラーメッセージを表示
+              errorMessage.textContent = messages.invalid;
+              errorMessage.style.display = "block";
             } finally {
               scanButton.disabled = false;
               scanButton.textContent = messages.scanQr;
+            }
+          });
+
+          submitButton.addEventListener("click", async () => {
+            if (!scanResult) return;
+            try {
+              const response = await fetch(callbackUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(scanResult)
+              });
+              if (response.ok) {
+                alert(messages.sendSuccess);
+              } else {
+                alert(messages.sendError);
+                console.error(await response.text());
+              }
+            } catch (e) {
+              alert(messages.sendError);
+              console.error(e);
             }
           });
         })
         .catch(error => {
           console.error("初期化エラー:", error);
           document.getElementById("errorMessage").textContent = "アプリの初期化に失敗しました。エラー詳細: " + error.message;
-          document.getElementById("errorMessage").style.display = "block";  // エラーメッセージ表示
+          document.getElementById("errorMessage").style.display = "block";
         });
     });
   </script>
