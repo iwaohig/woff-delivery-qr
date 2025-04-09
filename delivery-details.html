@@ -27,7 +27,7 @@
     th {
       background-color: #f0f0f0;
     }
-    #backBtn {
+    #closeBtn {
       margin-top: 30px;
       padding: 10px 20px;
       font-size: 16px;
@@ -60,7 +60,7 @@
     <tbody id="itemTable"></tbody>
   </table>
 
-  <button id="backBtn">戻る</button>
+  <button id="closeBtn">閉じる</button>
   <div id="debug"></div>
 
   <script>
@@ -109,14 +109,8 @@
     location.href: ${location.href}
   `;
 
-  document.getElementById("backBtn").addEventListener("click", () => {
-    if (window.opener && !window.opener.closed) {
-      window.close();
-    } else if (window.history.length > 1) {
-      history.back();
-    } else {
-      debug.innerHTML += "<br>戻る手段が見つかりませんでした。";
-    }
+  document.getElementById("closeBtn").addEventListener("click", () => {
+    window.close();
   });
   </script>
 </body>
