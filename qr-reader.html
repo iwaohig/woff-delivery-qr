@@ -37,7 +37,7 @@
   <button id="scan">QR コードをスキャン</button>
   <div id="result"></div>
   <button id="submit" style="display:none;">受領</button>
-  <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
+  <a id="detailLink" href="#" target="_blank">納品明細を見る</a>
   <div id="errorMessage" style="display:none;"></div>
 
   <script>
@@ -102,6 +102,7 @@
               };
 
               resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
+              detailLink.href = `delivery-details.html?deliveryId=${encodeURIComponent(payload.deliveryId)}`;
               detailLink.style.display = "inline-block";
               submitButton.style.display = "inline-block";
               submitButton.disabled = false;
