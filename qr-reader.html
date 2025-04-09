@@ -60,13 +60,17 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
-        .then(() => {
+        .then(() => woff.getProfile())
+        .then(profile => {
           let scanResult = null;
           const scanButton = document.getElementById("scan");
           const submitButton = document.getElementById("submit");
           const resultEl = document.getElementById("result");
           const detailLink = document.getElementById("detailLink");
           const errorMessage = document.getElementById("errorMessage");
+
+          const receiverName = profile.displayName;
+          const receiverId = profile.userId;
 
           scanButton.addEventListener("click", async () => {
             scanButton.disabled = true;
@@ -92,7 +96,9 @@
                 "納品先": payload.client,
                 "配送担当者": payload.deliveryPerson.name,
                 "配送担当者ID": payload.deliveryPerson.userId,
-                "受領時刻": new Date().toISOString()
+                "受領時刻": new Date().toISOString(),
+                "受領者": receiverName,
+                "受領者ID": receiverId
               };
 
               resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
