@@ -110,8 +110,12 @@
 
           const expiryTimestamp = Date.now() + 5 * 60 * 1000; // 5分
           const deliveryPayload = {
-            deliveryId: "DLV20250408-99999",
-            client: "ワークス中央病院",
+            deliveryId: "DLV20250408-99999", // 固定の納品ID
+            client: "ワークス中央病院", // 固定の納品先名
+            deliveryPerson: {
+              userId: profile.userId,  // 配送担当者のID
+              name: profile.displayName  // 配送担当者の名前
+            },
             timestamp: Date.now(),
             expiry: expiryTimestamp
           };
