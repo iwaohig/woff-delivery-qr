@@ -3,139 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>納品 QR 表示</title>
+  <title>QR 受領</title>
   <script charset="utf-8" src="https://static.worksmobile.net/static/wm/woff/edge/3.6.2/sdk.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body {
-      font-family: 'Roboto', Arial, sans-serif;
-      background-color: #f4f4f9;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: Arial, sans-serif;
       text-align: center;
+      margin: 20px;
     }
-    #card, #error {
-      width: 300px;
-      background-color: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-      padding: 20px;
-    }
-    #card.hidden, #error.hidden {
-      display: none;
-    }
-    h1 {
-      font-size: 1.8rem;
-      color: #333333;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 1rem;
-      color: #555555;
-      margin: 5px 0;
-    }
-    #qrcode {
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
       margin-top: 20px;
+      cursor: pointer;
     }
-    #countdown {
-      font-size: 1.2rem;
-      color: #d9534f;
-      margin-top: 10px;
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+    #detailLink {
+      display: none;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    #errorMessage {
+      color: red;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div id="card" class="hidden">
-    <h1>納品 QR</h1>
-    <p>名前: <span id="name">Loading...</span></p>
-    <p>ID: <span id="userId">Loading...</span></p>
-    <div id="qrcode"></div>
-    <p id="countdown">QRコードの有効期限: 残り <span id="timeRemaining">--:--</span></p>
-  </div>
-
-  <div id="error" class="hidden">
-    <h1>エラー</h1>
-    <p id="errorMessage">アプリの初期化に失敗しました。</p>
-  </div>
+  <button id="scan">QR コードをスキャン</button>
+  <div id="result"></div>
+  <a id="detailLink" href="delivery-details.html" target="_blank">納品明細を見る</a>
+  <div id="errorMessage" style="display:none;"></div>
 
   <script>
-    function utf8ToBase64(str) {
-      return btoa(unescape(encodeURIComponent(str)));
+    const messages = {
+      scanning: "スキャン中...",
+      scanQr: "QR コードをスキャン",
+      expired: "期限切れの QR コードです。",
+      invalid: "無効な QR コードです。",
+      scanError: "QR コードのスキャン中にエラーが発生しました。",
+      initError: "アプリの初期化に失敗しました。",
+      sendSuccess: "受領処理が完了しました！",
+      sendError: "送信中にエラーが発生しました。",
+    };
+
+    const callbackUrl = "https://prod-02.japaneast.logic.azure.com:443/workflows/b48ed1bad1d6474088765a5d0d477394/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qkgwdvs50zSOAkBgYxh-pgbmju4XMIei3Q4HG-W6yNE";
+
+    // Base64デコード用関数
+    function base64ToUtf8(str) {
+      return decodeURIComponent(escape(atob(str)));
     }
 
-    function startCountdown(expiryTimestamp) {
-      const countdownElement = document.getElementById("timeRemaining");
+    woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })  // 修正: woffIdを正しいIDに設定
+      .then(() => {
+        let scanResult = null;
+        document.getElementById("scan").addEventListener("click", async () => {
+          const scanButton = document.getElementById("scan");
+          const resultEl = document.getElementById("result");
+          const detailLink = document.getElementById("detailLink");
+          const errorMessage = document.getElementById("errorMessage");
+          scanButton.disabled = true;
+          scanButton.textContent = messages.scanning;
 
-      const interval = setInterval(() => {
-        const currentTimestamp = Date.now();
-        const timeLeft = expiryTimestamp - currentTimestamp;
+          resultEl.textContent = "";
+          detailLink.style.display = "none";
+          errorMessage.style.display = "none";  // エラーメッセージを非表示に
 
-        if (timeLeft <= 0) {
-          clearInterval(interval);
-          countdownElement.textContent = "期限切れ";
-        } else {
-          const minutes = Math.floor(timeLeft / 60000);
-          const seconds = Math.floor((timeLeft % 60000) / 1000);
-          countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-        }
-      }, 1000);
-    }
+          try {
+            const scanData = await woff.scanQR(); // QRコードスキャン
+            const decoded = base64ToUtf8(scanData.value); // デコード
+            const payload = JSON.parse(decoded);
 
-    function isMobileDevice() {
-      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    }
+            if (Date.now() > payload.expiry) {
+              resultEl.textContent = messages.expired;
+              return;
+            }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const cardElement = document.getElementById("card");
-      const errorElement = document.getElementById("error");
+            scanResult = {
+              "納品ID": payload.deliveryId,
+              "納品先": payload.client,
+              "配送担当者": payload.deliveryPerson.name,  // 配送担当者の名前
+              "配送担当者ID": payload.deliveryPerson.userId,  // 配送担当者のID
+              "受領時刻": new Date().toISOString()
+            };
 
-      if (!isMobileDevice()) {
-        errorElement.classList.remove("hidden");
-        return;
-      }
-
-      cardElement.classList.remove("hidden");
-
-      woff.init({ woffId: "4Fa7UeUR4waLFgZ6XI7gnA" })
-        .then(() => woff.getProfile())
-        .then(profile => {
-          document.getElementById("name").textContent = profile.displayName || "N/A";
-          document.getElementById("userId").textContent = profile.userId || "N/A";
-
-          const expiryTimestamp = Date.now() + 5 * 60 * 1000; // 5分
-          const deliveryPayload = {
-            deliveryId: "DLV20250408-99999", // 固定の納品ID
-            client: "ワークス中央病院", // 固定の納品先名
-            deliveryPerson: {
-              userId: profile.userId,  // 配送担当者のID
-              name: profile.displayName  // 配送担当者の名前
-            },
-            timestamp: Date.now(),
-            expiry: expiryTimestamp
-          };
-
-          const qrData = utf8ToBase64(JSON.stringify(deliveryPayload));
-
-          new QRCode(document.getElementById("qrcode"), {
-            text: qrData,
-            width: 240,
-            height: 240,
-            correctLevel: QRCode.CorrectLevel.H
-          });
-
-          startCountdown(expiryTimestamp);
-        })
-        .catch(error => {
-          console.error("エラー:", error);
-          document.getElementById("errorMessage").textContent = "アプリの初期化に失敗しました。エラー詳細: " + error.message;
-          errorElement.classList.remove("hidden");
+            resultEl.innerHTML = `納品ID: ${payload.deliveryId}<br>納品先: ${payload.client}<br>配送担当者: ${scanResult["配送担当者"]}`;
+            detailLink.style.display = "inline-block"; // 明細リンク表示
+          } catch (e) {
+            console.error(e);
+            errorMessage.textContent = messages.invalid;  // エラーメッセージを表示
+            errorMessage.style.display = "block";  // エラーメッセージを表示
+          } finally {
+            scanButton.disabled = false;
+            scanButton.textContent = messages.scanQr;
+          }
         });
-    });
+
+        // 受領ボタンがクリックされたときに送信処理を実行
+        document.getElementById("submit").addEventListener("click", async () => {
+          if (!scanResult) return;
+          try {
+            const response = await fetch(callbackUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(scanResult) // 配送担当者情報を含めたデータを送信
+            });
+            if (response.ok) {
+              alert(messages.sendSuccess);
+            } else {
+              alert(messages.sendError);
+              console.error(await response.text());
+            }
+          } catch (e) {
+            alert(messages.sendError);
+            console.error(e);
+          }
+        });
+      })
+      .catch(error => {
+        console.error("初期化エラー:", error);
+        document.getElementById("errorMessage").textContent = "アプリの初期化に失敗しました。エラー詳細: " + error.message;
+        document.getElementById("errorMessage").style.display = "block";  // エラーメッセージ表示
+      });
   </script>
 </body>
 </html>
